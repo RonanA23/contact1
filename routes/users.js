@@ -21,38 +21,44 @@ router.post(
     res.send('passed');
     const { name, password, email } = req.body;
 
-    let user = await User.findOne({ email });
+    try {
+      let user = await User.findOne({ email });
 
-    if (user) {
-      return res.status(400).json({ msg: 'user already exists' });
-    }
-    user = new User({
-      name,
-      password,
-      email,
-    });
-
-    const salt = await bcryptjs.genSalt(10);
-    user.password = await bycrypt.hash('password', salt);
-
-    await user.save();
-
-    const payload = {
-      user: {
-        id: user.id,
-      },
-    };
-    jwt.sign(
-      payload,
-      config.get('jwtsecret'),
-      {
-        expiresIn: 360000,
-      },
-      (error, token) => {
-        if (err) throw err;
-        res.json(token);
+      if (user) {
+        return res.status(400).json({ msg: 'user already exists' });
       }
-    );
+
+      user = new User({
+        name,
+        password,
+        email,
+      });
+
+      const salt = await bcryptjs.genSalt(10);
+      user.password = await bycrypt.hash('password', salt);
+
+      await user.save();
+
+      const payload = {
+        user: {
+          id: user.id,
+        },
+      };
+      jwt.sign(
+        payload,
+        config.get('jwtSecret'),
+        {
+          expiresIn: 360000,
+        },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
   }
 );
 
